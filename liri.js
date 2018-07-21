@@ -1,7 +1,7 @@
 //using .env to hide keys
 require("dotenv").config();
 
-//project vars
+// all my variables
 var keys = require("./keys.js");
 var fs = require("fs");
 var Spotify = require('node-spotify-api');
@@ -13,7 +13,7 @@ var twitter = require('twitter');
 var client = new twitter(keys.twitter);
 
 
-//switches for various commands
+// the command switches that intiate various functions --
 switch (liriReturn) {
     case "my-tweets":
         myTweets();
@@ -40,8 +40,7 @@ switch (liriReturn) {
         "Use quotes for multiword titles!");
 };
 
-//command 1 my-tweets
-//errors are either twitter is not defined or twitter is not a constructor
+
 function myTweets() {
     var params = { screen_name: 'nicolejayer' };
     client.get('statuses/user_timeline', params, function (error, tweets, response) {
@@ -57,8 +56,7 @@ function myTweets() {
     });
 };
 
-//command 2 spotify this song
-// need artist, song name, preview, album
+
 function spotifyThisSong(trackName) {
     var trackName = process.argv[3];
     if (!trackName) {
@@ -90,19 +88,19 @@ function spotifyThisSong(trackName) {
             };
         });
 };
-//command 3 movie this
-// run a request to the OMDB API with the movie specified
+
+
 function movieThis() {
 
-    //using movieName from var list at top
+
     var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=trilogy";
 
     request(queryUrl, function (error, response, body) {
 
-        // If the request is successful
+
         if (!error && response.statusCode === 200) {
 
-            //pull requested data in readable format
+          
             var myMovieData = JSON.parse(body);
             var queryUrlResults =
                 "Title: " + myMovieData.Title + "\n" +
@@ -122,19 +120,18 @@ function movieThis() {
     });
 };
 
-//command 4 do-what-it-says
-// This block of code creates a file called "random.txt"
-// It also adds the spotify command
+
+
 function doWhatItSays() {
 
     fs.writeFile("random.txt", 'spotify-this-song,"I Want it That Way"', function (err) {
         var song = "spotify-this-song,'I Want it That Way'"
-        // If the code experiences any errors it will log the error to the console.
+
         if (err) {
             return console.log(err);
         };
 
-        // Otherwise, it will print:
+
         console.log(song);
     });
 };
