@@ -1,153 +1,140 @@
-//Grab data from keys.js
-var keys = require('./keys.js');
-var request = require('request');
+//using .env to hide keys
+require("dotenv").config();
+
+//project vars
+var keys = require("./keys.js");
+var fs = require("fs");
+var Spotify = require('node-spotify-api');
+var spotify = new Spotify(keys.spotify);
+var request = require("request");
+var movieName = process.argv[3];
+var liriReturn = process.argv[2];
 var twitter = require('twitter');
-var spotify = require('spotify');
-var client = new twitter(keys.twitterKeys);
-var fs = require('fs');
+var client = new twitter(keys.twitter);
 
-//Stored argument's array
-var nodeArgv = process.argv;
-var command = process.argv[2];
-//movie or song
-var x = "";
-//attaches multiple word arguments
-for (var i=3; i<nodeArgv.length; i++){
-  if(i>3 && i<nodeArgv.length){
-    x = x + "+" + nodeArgv[i];
-  } else{
-    x = x + nodeArgv[i];
-  }
-}
 
-//switch case
-switch(command){
-  case "my-tweets":
-    showTweets();
-  break;
+//switches for various commands
+switch (liriReturn) {
+    case "my-tweets":
+        myTweets();
+        break;
 
-  case "spotify-this-song":
-    if(x){
-      spotifySong(x);
-    } else{
-      spotifySong("Fluorescent Adolescent");
-    }
-  break;
+    case "spotify-this-song":
+        spotifyThisSong();
+        break;
 
-  case "movie-this":
-    if(x){
-      omdbData(x)
-    } else{
-      omdbData("Mr. Nobody")
-    }
-  break;
+    case "movie-this":
+        movieThis();
+        break;
 
-  case "do-what-it-says":
-    doThing();
-  break;
+    case "do-what-it-says":
+        doWhatItSays();
+        break;
 
-  default:
-    console.log("{Please enter a command: my-tweets, spotify-this-song, movie-this, do-what-it-says}");
-  break;
-}
+    // instructions for first-time user lurking around on the command line
+    default: console.log("\n" + "type any command after 'node liri.js': " + "\n" +
+        "my-tweets" + "\n" +
+        "spotify-this-song 'any song title' " + "\n" +
+        "movie-this 'any movie title' " + "\n" +
+        "do-what-it-says " + "\n" +
+        "Use quotes for multiword titles!");
+};
 
-function showTweets(){
-  //Display last 20 Tweets
-  var screenName = {screen_name: 'nicolejayer'};
-  client.get('statuses/user_timeline', screenName, function(error, tweets, response){
-    if(!error){
-      for(var i = 0; i<tweets.length; i++){
-        var date = tweets[i].created_at;
-        console.log("@nicolejayer: " + tweets[i].text + " Created At: " + date.substring(0, 19));
-        console.log("-----------------------");
+//command 1 my-tweets
+//errors are either twitter is not defined or twitter is not a constructor
+function myTweets() {
+    var params = { screen_name: 'DangerNoodle18' };
+    client.get('statuses/user_timeline', params, function (error, tweets, response) {
+        if (!error) {
+            for (var i = 0; i < tweets.length; i++) {
 
-        //adds text to log.txt file
-        fs.appendFile('log.txt', "@nicolejayer: " + tweets[i].text + " Created At: " + date.substring(0, 19));
-        fs.appendFile('log.txt', "-----------------------");
-      }
-    }else{
-      console.log('Error occurred');
-    }
-  });
-}
+                console.log(tweets[i].text);
+            };
+        } else {
+            console.log("error: " + err);
+            return;
+        };
+    });
+};
 
-function spotifySong(song){
-  spotify.search({ type: 'track', query: song}, function(error, data){
-    if(!error){
-      for(var i = 0; i < data.tracks.items.length; i++){
-        var songData = data.tracks.items[i];
-        //artist
-        console.log("Artist: " + songData.artists[0].name);
-        //song name
-        console.log("Song: " + songData.name);
-        //spotify preview link
-        console.log("Preview URL: " + songData.preview_url);
-        //album name
-        console.log("Album: " + songData.album.name);
-        console.log("-----------------------");
+//command 2 spotify this song
+// need artist, song name, preview, album
+function spotifyThisSong(trackName) {
+    var trackName = process.argv[3];
+    if (!trackName) {
+        trackName = "The Sign";
+    };
+    songRequest = trackName;
+    spotify.search({
+        type: "track",
+        query: songRequest
+    },
+        function (err, data) {
+            if (!err) {
+                var trackInfo = data.tracks.items;
+                for (var i = 0; i < 5; i++) {
+                    if (trackInfo[i] != undefined) {
+                        var spotifyResults =
+                            "Artist: " + trackInfo[i].artists[0].name + "\n" +
+                            "Song: " + trackInfo[i].name + "\n" +
+                            "Preview URL: " + trackInfo[i].preview_url + "\n" +
+                            "Album: " + trackInfo[i].album.name + "\n"
 
-        //adds text to log.txt
-        fs.appendFile('log.txt', songData.artists[0].name);
-        fs.appendFile('log.txt', songData.name);
-        fs.appendFile('log.txt', songData.preview_url);
-        fs.appendFile('log.txt', songData.album.name);
-        fs.appendFile('log.txt', "-----------------------");
-      }
-    } else{
-      console.log('Error occurred.');
-    }
-  });
-}
+                        console.log(spotifyResults);
+                        console.log(' ');
+                    };
+                };
+            } else {
+                console.log("error: " + err);
+                return;
+            };
+        });
+};
+//command 3 movie this
+// run a request to the OMDB API with the movie specified
+function movieThis() {
 
-function omdbData(movie){
-  var omdbURL = 'http://www.omdbapi.com/?t=' + movie + '&plot=short&tomatoes=true';
+    //using movieName from var list at top
+    var queryUrl = "http://www.omdbapi.com/?t=" + movieName + "&y=&plot=short&apikey=trilogy";
 
-  request(omdbURL, function (error, response, body){
-    if(!error && response.statusCode == 200){
-      var body = JSON.parse(body);
+    request(queryUrl, function (error, response, body) {
 
-      console.log("Title: " + body.Title);
-      console.log("Release Year: " + body.Year);
-      console.log("IMdB Rating: " + body.imdbRating);
-      console.log("Country: " + body.Country);
-      console.log("Language: " + body.Language);
-      console.log("Plot: " + body.Plot);
-      console.log("Actors: " + body.Actors);
-      console.log("Rotten Tomatoes Rating: " + body.tomatoRating);
-      console.log("Rotten Tomatoes URL: " + body.tomatoURL);
+        // If the request is successful
+        if (!error && response.statusCode === 200) {
 
-      //adds text to log.txt
-      fs.appendFile('log.txt', "Title: " + body.Title);
-      fs.appendFile('log.txt', "Release Year: " + body.Year);
-      fs.appendFile('log.txt', "IMdB Rating: " + body.imdbRating);
-      fs.appendFile('log.txt', "Country: " + body.Country);
-      fs.appendFile('log.txt', "Language: " + body.Language);
-      fs.appendFile('log.txt', "Plot: " + body.Plot);
-      fs.appendFile('log.txt', "Actors: " + body.Actors);
-      fs.appendFile('log.txt', "Rotten Tomatoes Rating: " + body.tomatoRating);
-      fs.appendFile('log.txt', "Rotten Tomatoes URL: " + body.tomatoURL);
+            //pull requested data in readable format
+            var myMovieData = JSON.parse(body);
+            var queryUrlResults =
+                "Title: " + myMovieData.Title + "\n" +
+                "Year: " + myMovieData.Year + "\n" +
+                "IMDB Rating: " + myMovieData.Ratings[0].Value + "\n" +
+                "Rotten Tomatoes Rating: " + myMovieData.Ratings[1].Value + "\n" +
+                "Origin Country: " + myMovieData.Country + "\n" +
+                "Language: " + myMovieData.Language + "\n" +
+                "Plot: " + myMovieData.Plot + "\n" +
+                "Actors: " + myMovieData.Actors + "\n"
 
-    } else{
-      console.log('Error occurred.')
-    }
-    if(movie === "Mr. Nobody"){
-      console.log("-----------------------");
-      console.log("If you haven't watched 'Mr. Nobody,' then you should: http://www.imdb.com/title/tt0485947/");
-      console.log("It's on Netflix!");
+            console.log(queryUrlResults);
+        } else {
+            console.log("error: " + err);
+            return;
+        };
+    });
+};
 
-      //adds text to log.txt
-      fs.appendFile('log.txt', "-----------------------");
-      fs.appendFile('log.txt', "If you haven't watched 'Mr. Nobody,' then you should: http://www.imdb.com/title/tt0485947/");
-      fs.appendFile('log.txt', "It's on Netflix!");
-    }
-  });
+//command 4 do-what-it-says
+// This block of code creates a file called "random.txt"
+// It also adds the spotify command
+function doWhatItSays() {
 
-}
+    fs.writeFile("random.txt", 'spotify-this-song,"The Sign"', function (err) {
+        var song = "spotify-this-song 'The Sign'"
+        // If the code experiences any errors it will log the error to the console.
+        if (err) {
+            return console.log(err);
+        };
 
-function doThing(){
-  fs.readFile('random.txt', "utf8", function(error, data){
-    var txt = data.split(',');
-
-    spotifySong(txt[1]);
-  });
-}
+        // Otherwise, it will print:
+        console.log(song);
+    });
+};
