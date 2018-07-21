@@ -127,7 +127,7 @@ function movieThis() {
 // It also adds the spotify command
 function doWhatItSays() {
 
-    fs.writeFile("random.txt", 'spotify-this-song,"The Sign"', function (err) {
+    fs.writeFile("random.txt", 'spotify-this-song,"I Want it That Way"', function (err) {
         var song = "spotify-this-song 'The Sign'"
         // If the code experiences any errors it will log the error to the console.
         if (err) {
